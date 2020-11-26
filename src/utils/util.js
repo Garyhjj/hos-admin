@@ -1,3 +1,5 @@
+import * as XLSX from 'xlsx'
+
 export function timeFix () {
   const time = new Date()
   const hour = time.getHours()
@@ -64,4 +66,53 @@ export function removeLoadingAnimate (id = '', timeout = 1500) {
   setTimeout(() => {
     document.body.removeChild(document.getElementById(id))
   }, timeout)
+}
+
+export function readExcel (file) {
+  return new Promise((resolve, reject) => {
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = e => {
+        /* read workbook */
+        const bstr = e.target.result
+        let res
+        try {
+          const wb = XLSX.read(bstr, { type: 'binary' })
+          /* grab first sheet */
+          const wsname = wb.SheetNames[0]
+          const ws = wb.Sheets[wsname]
+          /* save data */
+          res = XLSX.utils.sheet_to_json(ws, {
+            header: 1,
+            defval: ''
+          })
+        } catch (e) {
+          reject(e)
+        }
+        if (!res) {
+          return
+        }
+        if (res.length < 2) {
+          resolve([])
+        } else {
+          resolve(res)
+        }
+      }
+      reader.readAsBinaryString(file)
+    }
+  })
+}
+
+export function toExcel (
+  name,
+  header,
+  data
+) {
+  data.unshift(header)
+  const ws = XLSX.utils.aoa_to_sheet(data)
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1')
+
+  XLSX.writeFile(wb, `${name}.xlsx`)
 }
